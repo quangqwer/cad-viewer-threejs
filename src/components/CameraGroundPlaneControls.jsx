@@ -25,90 +25,41 @@ export default function CameraGroundPlaneControls({ moveSpeed = 0.1 }) {
   }, []);
 
   useFrame(() => {
-    let moved = false;
-    
-    // Lấy hướng từ camera đến target (điểm camera đang nhìn)
+    if (!controls || !controls.target) return;
+
     const lookDirection = new THREE.Vector3();
-    if (controls && controls.target) {
-      // Tính vector từ camera đến target
-      lookDirection.subVectors(controls.target, camera.position);
-      lookDirection.normalize();
-    } else {
-      // Nếu không có controls, dùng hướng camera
-      camera.getWorldDirection(lookDirection);
-    }
-    
-    // Tạo vector forward trên mặt phẳng XZ
-    const forward = new THREE.Vector3(lookDirection.x, 0, lookDirection.z);
-    forward.normalize();
-    
-    // Tạo vector right - vuông góc với forward
-    const right = new THREE.Vector3(-forward.z, 0, forward.x);
-    
-    // W - Tiến theo hướng đang nhìn
+    lookDirection.subVectors(controls.target, camera.position).normalize();
+
+    const forward = new THREE.Vector3(lookDirection.x, 0, lookDirection.z).normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+
     if (keys.current['w']) {
-      camera.position.x += forward.x * moveSpeed;
-      camera.position.z += forward.z * moveSpeed;
-      if (controls && controls.target) {
-        controls.target.x += forward.x * moveSpeed;
-        controls.target.z += forward.z * moveSpeed;
-      }
-      moved = true;
+      camera.position.addScaledVector(forward, moveSpeed);
+      controls.target.addScaledVector(forward, moveSpeed);
     }
-    
-    // S - Lùi ngược hướng đang nhìn
     if (keys.current['s']) {
-      camera.position.x -= forward.x * moveSpeed;
-      camera.position.z -= forward.z * moveSpeed;
-      if (controls && controls.target) {
-        controls.target.x -= forward.x * moveSpeed;
-        controls.target.z -= forward.z * moveSpeed;
-      }
-      moved = true;
+      camera.position.addScaledVector(forward, -moveSpeed);
+      controls.target.addScaledVector(forward, -moveSpeed);
     }
-    
-    // A - Sang trái
     if (keys.current['a']) {
-      camera.position.x -= right.x * moveSpeed;
-      camera.position.z -= right.z * moveSpeed;
-      if (controls && controls.target) {
-        controls.target.x -= right.x * moveSpeed;
-        controls.target.z -= right.z * moveSpeed;
-      }
-      moved = true;
+      camera.position.addScaledVector(right, -moveSpeed);
+      controls.target.addScaledVector(right, -moveSpeed);
     }
-    
-    // D - Sang phải
     if (keys.current['d']) {
-      camera.position.x += right.x * moveSpeed;
-      camera.position.z += right.z * moveSpeed;
-      if (controls && controls.target) {
-        controls.target.x += right.x * moveSpeed;
-        controls.target.z += right.z * moveSpeed;
-      }
-      moved = true;
+      camera.position.addScaledVector(right, moveSpeed);
+      controls.target.addScaledVector(right, moveSpeed);
     }
-    
-    // Q/E - Thay đổi độ cao
+
     if (keys.current['q']) {
       camera.position.y -= moveSpeed;
-      if (controls && controls.target) {
-        controls.target.y -= moveSpeed;
-      }
-      moved = true;
+      controls.target.y -= moveSpeed;
     }
     if (keys.current['e']) {
       camera.position.y += moveSpeed;
-      if (controls && controls.target) {
-        controls.target.y += moveSpeed;
-      }
-      moved = true;
+      controls.target.y += moveSpeed;
     }
-    
-    // Update OrbitControls
-    if (controls && moved) {
-      controls.update();
-    }
+
+    controls.update();
   });
 
   return null;

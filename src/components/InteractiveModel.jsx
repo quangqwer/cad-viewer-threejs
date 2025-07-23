@@ -143,8 +143,8 @@ function DraggableMesh({ originalMesh, camera, size, onSelect, isSelected }) {
   );
 }
 
-export default function InteractiveModel({ modelName }) {
-  const { scene } = useGLTF(`/models/${modelName}.glb`);
+export default function InteractiveModel({ model, rotationX, rotationY, rotationZ }) {
+  const { scene } = useGLTF(model);
   const [selected, setSelected] = useState(null);
   const { camera, size } = useThree();
 
@@ -165,6 +165,31 @@ export default function InteractiveModel({ modelName }) {
     });
   }, [scene]);
 
+  // bao quát mô hình đối với mo hình quá to sẽ phóng to camera tầm nhìn
+  useEffect(() => {
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    console.log('📦 Center of model:', center);
+    console.log('Scene size:', size);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fov = camera.fov * (Math.PI / 180);
+    const distance = maxDim / (2 * Math.tan(fov / 2));
+  
+    // Căn vị trí camera sao cho mô hình vừa khung hình
+    camera.position.set(center.x, center.y + maxDim / 2, center.z + distance * 1.2);
+    camera.lookAt(center);
+  
+    // Nếu có OrbitControls
+    if (camera?.controls) {
+      camera.controls.target.copy(center);
+      camera.controls.update();
+    }
+  }, [scene, camera]);
+
   const meshes = useMemo(() => {
     const list = [];
     scene.traverse((child) => {
@@ -176,7 +201,7 @@ export default function InteractiveModel({ modelName }) {
   }, [scene]);
 
   return (
-    <group>
+    <group rotation={[rotationX, rotationY, rotationZ]} >
       {meshes.map((mesh) => (
         <DraggableMesh
           key={mesh.uuid}
